@@ -14,9 +14,15 @@ void main(int argc, char* argv[]){
     // path 1
     if(i < 5){
         free(dummy);
+        if(i > 6)
+        {
+            printf("more than 6");
+        }
     }
     // path 2 - memory leak
     else{ 
         dummy->value = i;
     }
+
+    // if(i) free(dummy); else (printf("a")); fun test case
 }

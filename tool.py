@@ -17,12 +17,16 @@ branches = []
 '''
 NOTE: THIS EXPECTS WELL FORMED AND STYLED C CODE
 '''
-def branchFinder(pp: int): # start at a given program point
+def branchFinder(pp: int): # start at a given program point, end of selection to be analyzed
+    isOpen = True
     curStart = pp
     curEnd = -1
-    isOpen = True
-    for i in range(pp, len(lines)):
+    # if end != -1: curEnd = end
+    # needs recurison, given a startpoint and endpoint
+    for i in range(curStart, len(lines)):
         if lines[i][0:2] == '//': continue # skip comments ;)
+        if 'if' in lines[i]:
+            branchFinder(pp + 1)
         if 'else if' in lines[i]: # necessary?
             curStart = i
             curEnd = -1
@@ -33,15 +37,16 @@ def branchFinder(pp: int): # start at a given program point
             isOpen  = True
         if isOpen and '}' in lines[i]:
             curEnd = i
+            branchFinder(pp + 1)
             branches.append((curStart,curEnd)) # add
             curStart = -1 # reset markers
             curEnd = -1
             isOpen = False
             continue
-        if curStart != -1 and curEnd == -1: # still in a branch block i.e start found, end not
+        if curStart != -1 and curEnd == -1: # still in a branch block i.e start found, end has not been
             continue
         # break condn
-        if curStart == -1 and curEnd == -1:
+        if not isOpen and curStart == -1 and curEnd == -1: # nothing after the end of consecutive ITE blocks
             break
         
             
@@ -69,7 +74,7 @@ while i < len(lines):
         # branches = [i]
         # look for elifs and else
         # HOW????
-        branchFinder(i)
+        branchFinder(i+1)
 
     i += 1
 
