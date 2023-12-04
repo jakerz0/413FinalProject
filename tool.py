@@ -1,6 +1,3 @@
-
-#import networkx as nx # graph library
-
 # BEGIN GRAPH STUFF
 graph = {}
 vertices_no = 0
@@ -47,7 +44,8 @@ f = open('test1.c')
 lines = [str(l).strip() for l in f.readlines()]
 f.close()
 
-print(lines)
+#print(lines)
+
 
 assignments_on = [] # is this even needed??
 mallocs = []
@@ -56,67 +54,64 @@ branches = []
 '''
 NOTE: THIS EXPECTS WELL FORMED AND STYLED C CODE
 '''
-# def branchFinder(start: int, end: int, G: GraphNodeClass): # start at a given program point, end of selection to be analyzed
-#     #print(len(lines))
-#     i = start
-#     while i < end:
-#         if "//" in lines[i]: 
-#             i += 1
-#             continue
-#     #print(i)
-#         if "if" in lines[i]:
-
-#             # print("entering branch")
-#             # print(lines[i])
-#             # pp = i + 1
-#             # thisEnd = findEndOfBlock(i)
-#             # while "}" not in lines[pp]:
-#             #     i = branchFinder(pp, thisEnd)
-#             #     pp += 1
-#             # print("leaving branch")
-#             # branches.append((i,thisEnd))
-#             # return pp
-#         if "else" in lines[i]:
-#             # print("entering branch")
-#             # print(lines[i])
-#             # pp = i + 1
-#             # thisEnd = findEndOfBlock(i)
-#             # while "}" not in lines[pp]:
-#             #     i = branchFinder(pp, thisEnd)
-#             #     pp += 1
-#             # print("leaving branch")
-#             # branches.append((i,thisEnd))
-#             # return pp
-#         if i == end:
-#             branches.append((start,end))
-#             return i
-#         i += 1
-        
-tmp = []
-def findEndOfBlock(start: int):
+def branchFinder(start: int, end: int, G: int): # start at a given program point, end of selection to be analyzed, parent int
+    global vertices_no
+    global lines
     stack = []
-    for i in range(start, len(lines)):
-        if "//" in lines[i]: continue
-        if "{" in lines[i]:
-            stack.append(i)
-        if "}" in lines[i]:
-            y = stack.pop()
-            if (y,i) not in tmp:
-                tmp.append((y,i))
-        if len(stack) == 0: 
-            # print(tmp)
+    i = start
+    while i < end:
+        # comment or empty line
+        if len(lines[i]) == 0 or lines[i][0] == "/":
+            i += 1
+        else:
+            # start of if or else conditional
+            if "if(" in lines[i] or "else{" in lines[i] or "else if{" in lines[i]:
+                temp = i
+                while True:
+                    if "{" in lines[temp]:
+                        stack.append("{")
+                    if "}" in lines[temp]:
+                        if stack[len(stack) - 1] == "{":
+                            stack.pop()
+                            if (len(stack) == 0):
+                                #break when found end, end is held in temp
+                                break
+                        else:
+                            # This should realistically never happen
+                            stack.append("}")
+                    temp += 1
+                add_vertex(vertices_no, (i, temp)) # adds new vertice i=start, temp=end
+                add_edge(G, vertices_no - 1)
+                branchFinder(i + 1, temp, vertices_no - 1)
+                i = temp
+            else:
+                i += 1
+            
 
-            return (start, i) 
+        
+# tmp = []
+# def findEndOfBlock(start: int):
+#     stack = []
+#     for i in range(start, len(lines)):
+#         if "//" in lines[i]: continue
+#         if "{" in lines[i]:
+#             stack.append(i)
+#         if "}" in lines[i]:
+#             y = stack.pop()
+#             if (y,i) not in tmp:
+#                 tmp.append((y,i))
+#         if len(stack) == 0: 
+#             # print(tmp)
+
+#             return (start, i) 
         
 
-
-# CFG = nx.DiGraph() # directed graph
 
 # getting mallocs, frees, and general assignments by program point, no names/vals
 i = 0
 for i in range(len(lines)):
-    if lines[0:2] == '//': continue # skip comments ;)
-    if '=' in lines[i] and 'malloc' in lines[i]:
+    if len(lines[i]) > 0 and lines[i][0] == "/": continue # skip comments ;)
+    if '= malloc(' in lines[i]:
         mallocs.append(i)
     if '=' in lines[i] and '==' not in lines[i]:
         assignments_on.append(i)
@@ -124,30 +119,13 @@ for i in range(len(lines)):
         frees.append(i)
 
 
-# i = 0
-# while i < len(lines):
-#     if lines[0:2] == '//': continue # skip comments ;)
-#     if 'if' in lines[i]:
-#         # branches = [i]
-#         # look for elifs and else
-#         # HOW????
-#         branchFinder(i+1)
+# All of the numbers are the line number - 1 because of starting at line 0
+branchFinder(0, len(lines) - 1, vertices_no)
+print("Graph:", graph)
+print("Graph Data:", graphData)
+print("Mallocs:", mallocs)
+print("Frees:", frees)
 
-#     i += 1
-add_vertex(vertices_no, "poop")
-add_vertex(vertices_no, "pooop")
-add_edge(0,1)
-print(graph)
-print(graphData)
-print(graph[0][0])
-
-branchFinder(0, len(lines) - 1)
-
-print(assignments_on)
-print(mallocs)
-print(frees)
-print(branches)
-print(tmp)
 # 2 cases: struct <...> and <type> (basic)
 type = ['int','float','double','char'] # if not type, then its a struct
 

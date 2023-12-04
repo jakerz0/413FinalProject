@@ -19,9 +19,9 @@ void main(int argc, char* argv[]){
         }
     }
     // path 2 - memory leak
-    // else{ 
-    //     dummy->value = i;
-    // }
+    else{ 
+        dummy->value = i;
+    }
 
     // if(i) free(dummy); else (printf("a")); fun test case
 }
