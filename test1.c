@@ -8,7 +8,7 @@ struct dummy{
 void main(int argc, char* argv[]){
 
     int i = rand() % 10;
-
+    int j;
     struct dummy* dummy = malloc(sizeof(struct dummy));
 
     // path 1
@@ -21,6 +21,10 @@ void main(int argc, char* argv[]){
     // path 2 - memory leak
     else{ 
         dummy->value = i;
+    }
+    
+    for(j = 0; j < i; j++){
+        printf("im doing a loop!");
     }
 
     // if(i) free(dummy); else (printf("a")); fun test case

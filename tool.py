@@ -84,6 +84,26 @@ def branchFinder(start: int, end: int, G: int): # start at a given program point
                 add_edge(G, vertices_no - 1)
                 branchFinder(i + 1, temp, vertices_no - 1)
                 i = temp
+            elif "for(" in lines[i]  or "while(" in lines[i]:
+              temp = i
+              while True:
+                  if "{" in lines[temp]:
+                      stack.append("{")
+                  if "}" in lines[temp]:
+                      if stack[len(stack) - 1] == "{":
+                          stack.pop()
+                          if (len(stack) == 0):
+                              #break when found end, end is held in temp
+                              break
+                      else:
+                          # This should realistically never happen
+                          stack.append("}")
+                  temp += 1
+              add_vertex(vertices_no, (i, temp)) # adds new vertice i=start, temp=end
+              add_edge(G, vertices_no - 1)
+              add_edge(vertices_no -1, vertices_no -1) # for loops, add an edge from that branch to itself
+              branchFinder(i + 1, temp, vertices_no - 1)
+              i = temp
             else:
                 i += 1
             
