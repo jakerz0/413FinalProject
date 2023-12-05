@@ -2,22 +2,28 @@
 graph = {}
 vertices_no = 0
 graphData = {}
+graphConds = {}
+graphParents = {}
 
 # Add a vertex to the dictionary
-def add_vertex(v, data):
+def add_vertex(v, data, cond):
   global graph
   global vertices_no
   global graphData
+  global graphConds
   if v in graph:
     print("Vertex ", v, " already exists.")
   else:
     vertices_no = vertices_no + 1
     graph[v] = []
     graphData[v] = data
+    graphConds[v] = cond
+    graphParents[v] = []
 
 # Add an edge between vertex v1 and v2 with edge weight e
 def add_edge(v1, v2):
   global graph
+  global graphParents
   # Check if vertex v1 is a valid vertex
   if v1 not in graph:
     print("Vertex ", v1, " does not exist.")
@@ -28,7 +34,8 @@ def add_edge(v1, v2):
     # Since this code is not restricted to a directed or 
     # an undirected graph, an edge between v1 v2 does not
     # imply that an edge exists between v2 and v1
-    graph[v1].append(v2)
+    if v2 not in graph[v1]: graph[v1].append(v2)
+    if v1 not in graph[v2]: graphParents[v2].append(v1)
 
 # Print the graph
 def print_graph():
@@ -40,7 +47,7 @@ def print_graph():
 # GRAPH STUFF DONE
 
 # finding the number of variable assignments
-f = open('test1.c')
+f = open('test2.c')
 lines = [str(l).strip() for l in f.readlines()]
 f.close()
 
@@ -59,13 +66,17 @@ def branchFinder(start: int, end: int, G: int): # start at a given program point
     global lines
     stack = []
     i = start
-    while i < end:
-        # comment or empty line
-        if len(lines[i]) == 0 or lines[i][0] == "/":
+    while i <= end:
+        # comment or empty line, comments should always be on their own lines
+        if(i == end):
+           print("something")
+           snapToParent(G)
+           break
+        if len(lines[i]) == 0 or "//" in lines[i]:
             i += 1
         else:
             # start of if or else conditional
-            if "if(" in lines[i] or "else{" in lines[i] or "else if{" in lines[i]:
+            if "if(" in lines[i] or "else{" in lines[i] or "else if(" in lines[i]:
                 temp = i
                 while True:
                     if "{" in lines[temp]:
@@ -80,9 +91,20 @@ def branchFinder(start: int, end: int, G: int): # start at a given program point
                             # This should realistically never happen
                             stack.append("}")
                     temp += 1
-                add_vertex(vertices_no, (i, temp)) # adds new vertice i=start, temp=end
-                add_edge(G, vertices_no - 1)
-                branchFinder(i + 1, temp, vertices_no - 1)
+                thisCond = getLineCond(lines[i])
+                cond = vertices_no # v_no of the conditional
+                add_vertex(vertices_no, (i,i), thisCond) # the conditional statement itself
+                body = vertices_no # v_no of body
+                add_vertex(vertices_no, (i, temp), "body") # adds new vertice i=start, temp=end
+                # below is here because the first node should not point to itself (0) unless it is a loop
+                # if it is -1, meaning it is the very first branch, G should be changed to 0 afterword
+                if(G != -1): 
+                   add_edge(G, cond)
+                else: 
+                   G = 0
+                add_edge(cond, body)
+                snapToParent(cond)
+                branchFinder(i + 1, temp, body)
                 i = temp
             elif "for(" in lines[i]  or "while(" in lines[i]:
               temp = i
@@ -99,16 +121,42 @@ def branchFinder(start: int, end: int, G: int): # start at a given program point
                           # This should realistically never happen
                           stack.append("}")
                   temp += 1
-              add_vertex(vertices_no, (i, temp)) # adds new vertice i=start, temp=end
-              add_edge(G, vertices_no - 1)
-              add_edge(vertices_no -1, vertices_no -1) # for loops, add an edge from that branch to itself
+              thisCond = getLineCond(lines[i])
+              cond = vertices_no # v_no of the conditional
+              add_vertex(cond, (i, i), thisCond) # adds new vertice i=start, temp=end
+              body = vertices_no # v_no of body
+              add_vertex(body, (i, temp), "body") # adds new vertice i=start, temp=end
+              add_edge(G, cond) # between superbody and cond
+              add_edge(cond, body) # between the cond and the body
+              add_edge(body, cond) # for loops, add an edge from its body to its cond
               branchFinder(i + 1, temp, vertices_no - 1)
               i = temp
             else:
                 i += 1
             
 
-        
+def getLineCond(s: str):
+   if "else if(" in s:
+      return "else if"
+   elif "if(" in s:
+      return "if"
+   elif "else{" in s:
+      return "else"
+   elif "for(" in s:
+      return "for"
+   elif "while(" in s:
+      return "while"
+   else:
+      print("NO COND FOUND in " + s)
+
+# only for use with loop snaps
+def snapToParent(g: int):
+    if(g <= 0): return
+    iter = g
+    while iter > 0 and graphConds[graphParents[iter][0]] != "while" and graphConds[graphParents[iter][0]] != "for":
+        iter = graphParents[iter][0]
+    iter = graphParents[iter][0]
+    add_edge(g, iter)
 # tmp = []
 # def findEndOfBlock(start: int):
 #     stack = []
@@ -140,9 +188,11 @@ for i in range(len(lines)):
 
 
 # All of the numbers are the line number - 1 because of starting at line 0
-branchFinder(0, len(lines) - 1, vertices_no)
+branchFinder(0, len(lines) - 1, -1)
 print("Graph:", graph)
 print("Graph Data:", graphData)
+print("Graph Conds: " , graphConds)
+print("Graph Parents: ", graphParents)
 print("Mallocs:", mallocs)
 print("Frees:", frees)
 

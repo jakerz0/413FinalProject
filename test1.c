@@ -17,6 +17,9 @@ void main(int argc, char* argv[]){
         if(i > 6){
             printf("more than 6");
         }
+        else{
+            printf("less than 6");
+        }
     }
     // path 2 - memory leak
     else{ 
@@ -25,6 +28,9 @@ void main(int argc, char* argv[]){
     
     for(j = 0; j < i; j++){
         printf("im doing a loop!");
+        if(j == 2) {
+            // literally nothing
+        }
     }
 
     // if(i) free(dummy); else (printf("a")); fun test case
