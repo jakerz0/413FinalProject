@@ -47,7 +47,7 @@ def print_graph():
 # GRAPH STUFF DONE
 
 # finding the number of variable assignments
-f = open('test2.c')
+f = open('test3.c')
 lines = [str(l).strip() for l in f.readlines()]
 f.close()
 
@@ -70,7 +70,7 @@ def branchFinder(start: int, end: int, G: int): # start at a given program point
         # comment or empty line, comments should always be on their own lines
         if(i == end):
            print("something")
-           snapToParent(G)
+           #snapToParent(G)
            break
         if len(lines[i]) == 0 or "//" in lines[i]:
             i += 1
@@ -103,9 +103,10 @@ def branchFinder(start: int, end: int, G: int): # start at a given program point
                 else: 
                    G = 0
                 add_edge(cond, body)
-                snapToParent(cond)
-                branchFinder(i + 1, temp, body)
-                i = temp
+                branchFinder(i + 1, temp, cond)
+                #snapToParent(cond)
+                # i = temp + 1
+                i += 1
             elif "for(" in lines[i]  or "while(" in lines[i]:
               temp = i
               while True:
@@ -132,6 +133,23 @@ def branchFinder(start: int, end: int, G: int): # start at a given program point
               branchFinder(i + 1, temp, vertices_no - 1)
               i = temp
             else:
+                # we are in a body section!
+                # temp = i
+                # while "}" not in lines[temp] and\
+                #       "if(" not in lines[temp] and\
+                #       "else{" not in lines[temp] and\
+                #       "for(" not in lines[temp] and\
+                #       "while(" not in lines[temp]:
+                #    temp += 1
+                # v = vertices_no
+                # add_vertex(v, (i, temp), "body")
+                # if len(graph[G]) > 0:
+                #    for branch in graph[G]:
+                #     add_edge(branch, v)
+                # else:
+                #    add_edge(G, v)
+                # branchFinder(temp, end, v)
+                # i = temp+1
                 i += 1
             
 
@@ -149,11 +167,15 @@ def getLineCond(s: str):
    else:
       print("NO COND FOUND in " + s)
 
-# only for use with loop snaps
+# TODO this is still not perfect, I think the body system needs to be refactored to include multiple 
+# "bodies" in one block, i.e. between loops and ites in a given block
 def snapToParent(g: int):
     if(g <= 0): return
     iter = g
-    while iter > 0 and graphConds[graphParents[iter][0]] != "while" and graphConds[graphParents[iter][0]] != "for":
+    while iter > 1 and graphParents[iter] != None:
+
+        if graphConds[graphParents[iter][0]] == "while" or graphConds[graphParents[iter][0]] == "for":
+            break
         iter = graphParents[iter][0]
     iter = graphParents[iter][0]
     add_edge(g, iter)
@@ -188,7 +210,31 @@ for i in range(len(lines)):
 
 
 # All of the numbers are the line number - 1 because of starting at line 0
-branchFinder(0, len(lines) - 1, -1)
+mainstart = -1
+mainend = -1
+for i in range(0, len(lines) -1):
+   if "//" in lines[i]: continue
+   if "main(int argc, char* argv[])" in lines[i]:
+      mainstart = i
+      temp = i
+      stack = []
+      while True:
+        if "{" in lines[temp]:
+            stack.append("{")
+        if "}" in lines[temp]:
+            if stack[len(stack) - 1] == "{":
+                stack.pop()
+                if (len(stack) == 0):
+                    #break when found end, end is held in temp
+                    break
+            else:
+                # This should realistically never happen
+                stack.append("}")
+        temp += 1
+      mainend = temp
+      break
+add_vertex(vertices_no, (mainstart,mainend), "ENTRY")
+branchFinder(mainstart, mainend, 0)
 print("Graph:", graph)
 print("Graph Data:", graphData)
 print("Graph Conds: " , graphConds)

@@ -18,4 +18,5 @@ void main(int argc, char* argv[]){
     }
 
     // if(i) free(dummy); else (printf("a")); fun test case
+    return;
 }
