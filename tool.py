@@ -76,10 +76,6 @@ f.close()
 #print(lines)
 
 
-assignments_on = [] # is this even needed??
-mallocs = {}
-frees = {}
-branches = []
 '''
 NOTE: THIS EXPECTS WELL FORMED AND STYLED C CODE
 '''
@@ -138,18 +134,6 @@ def branchFinder(start: int, end: int, G: int): # start at a given program point
                 elif inLoop:
                     pathsInLoops[(vertices_no - 1, temp)] = (loopNode[1], loopNode[0])
                 inLoop = False
-                # body = vertices_no # v_no of body
-                # add_vertex(vertices_no, (i, temp), "body") # adds new vertice i=start, temp=end
-                # # below is here because the first node should not point to itself (0) unless it is a loop
-                # # if it is -1, meaning it is the very first branch, G should be changed to 0 afterword
-                # if(G != -1): 
-                #    add_edge(G, cond)
-                # else: 
-                #    G = 0
-                # add_edge(cond, body)
-                # branchFinder(i + 1, temp, cond)
-                #snapToParent(cond)
-                # i = temp + 1
                 i += 1
             elif "for(" in lines[i]  or "while(" in lines[i]:
                 temp = i
@@ -186,12 +170,11 @@ def branchFinder(start: int, end: int, G: int): # start at a given program point
                 inLoop = False
                 loopLocations[i] = (temp, vertices_no - 1)
                 body = vertices_no # v_no of body
-                # add_vertex(body, (i, temp), "body") # adds new vertice i=start, temp=end
+
                 add_edge(G, cond) # between conditional and previous
-                # add_edge(cond, body) # between the cond and the body
+
                 add_edge(cond, cond) # for loops, add an edge from its body to its cond
-                # branchFinder(i + 1, temp, vertices_no - 1)
-                # i = temp
+
                 G = vertices_no - 1
                 i += 1
             else:
@@ -212,25 +195,8 @@ def branchFinder(start: int, end: int, G: int): # start at a given program point
                     pathsInLoops[(vertices_no - 1, i)] = (loopNode[1], loopNode[0])
                 inLoop = False
                 G = vertices_no - 1
-                # branchFinder(i + 1, end, vertices_no - 1)
-                # we are in a body section!
-                # temp = i
-                # while "}" not in lines[temp] and\
-                #       "if(" not in lines[temp] and\
-                #       "else{" not in lines[temp] and\
-                #       "for(" not in lines[temp] and\
-                #       "while(" not in lines[temp]:
-                #    temp += 1
-                # v = vertices_no
-                # add_vertex(v, (i, temp), "body")
-                # if len(graph[G]) > 0:
-                #    for branch in graph[G]:
-                #     add_edge(branch, v)
-                # else:
-                #    add_edge(G, v)
-                # branchFinder(temp, end, v)
-                # i = temp+1
                 i += 1
+
     for path in pathsToAdd:
        nextNode = getNextNode(pathsToAdd[path])
        if (nextNode not in graph[path]):
@@ -339,25 +305,6 @@ def traverse(root: int):
 
         Q.append(neighbor)
         
-      
-        
-
-
-      
-# getting mallocs, frees, and general assignments by program point, no names/vals
-i = 0
-for i in range(len(lines)):
-    if len(lines[i]) > 0 and lines[i][0] == "/": continue # skip comments ;)
-    if '= malloc(' in lines[i]:
-        name = getVarNameAlloc(lines[i])
-        if name not in mallocs: mallocs[name] = []
-        mallocs[name].append(i)
-    if '=' in lines[i] and '==' not in lines[i]:
-        assignments_on.append(i)
-    if 'free' in lines[i]:
-        name = getVarNameFree(lines[i])
-        if name not in frees: frees[name] = []
-        frees[name].append(i)
 
 # All of the numbers are the line number - 1 because of starting at line 0
 mainstart = -1
