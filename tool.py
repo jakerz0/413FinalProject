@@ -4,6 +4,7 @@ vertices_no = 0
 graphData = {}
 graphConds = {}
 graphParents = {}
+graphAvailable = {}
 
 # Add a vertex to the dictionary
 def add_vertex(v, data, cond):
@@ -11,6 +12,7 @@ def add_vertex(v, data, cond):
   global vertices_no
   global graphData
   global graphConds
+  global graphAvailable
   if v in graph:
     print("Vertex ", v, " already exists.")
   else:
@@ -19,6 +21,7 @@ def add_vertex(v, data, cond):
     graphData[v] = data
     graphConds[v] = cond
     graphParents[v] = []
+    graphAvailable[v] = set()
 
 # Add an edge between vertex v1 and v2 with edge weight e
 def add_edge(v1, v2):
@@ -68,8 +71,8 @@ f.close()
 
 
 assignments_on = [] # is this even needed??
-mallocs = []
-frees = []
+mallocs = {}
+frees = {}
 branches = []
 '''
 NOTE: THIS EXPECTS WELL FORMED AND STYLED C CODE
@@ -278,20 +281,75 @@ def snapToParent(g: int):
 #             # print(tmp)
 
 #             return (start, i) 
+
+def getVarNameAlloc(line: str):
+   elems = line.split()
+   for i in range(len(elems)):
+      if elems[i] == "=":
+         return elems[i-1]
+
+def getVarNameFree(line: str):
+    start: int
+    end: int
+    for i in range(len(line)):
+      if line[i] == "(":
+        elem = i+1
+        start = elem
+        while(line[elem] != ")"):
+            elem = elem+1
+
+        end = elem
+        break
+    return line[start:end]
+
+def traverse(root: int):
+   global graph
+   Q = [root]
+#    visited = [root]
+   
+   while Q:
+      v = Q.pop()
+      print(v, end=" ")
+
+      for neighbor in graph[v]:
+        #  if neighbor not in visited:
+            # visited.append(neighbor)
+            # variable stuff
+        
+        graphAvailable[neighbor] = set(graphAvailable[v]).union(set(graphAvailable[neighbor]))
+        if graphData[neighbor][0] == graphData[neighbor][1]: # if it is an atomic operation
+            theLine = graphData[neighbor][0]
+            if "alloc(" in lines[theLine]:
+                theName = getVarNameAlloc(lines[theLine])
+                graphAvailable[neighbor] = set(graphAvailable[neighbor]).union({theName})
+            if "free(" in lines[theLine]:
+                theName = getVarNameFree(lines[theLine])
+                graphAvailable[neighbor] = set(graphAvailable[neighbor]).difference({theName})
+        
+        if graphAvailable[neighbor] == None:
+           graphAvailable[neighbor] = set()
+
+        Q.append(neighbor)
+        
+      
         
 
 
+      
 # getting mallocs, frees, and general assignments by program point, no names/vals
 i = 0
 for i in range(len(lines)):
     if len(lines[i]) > 0 and lines[i][0] == "/": continue # skip comments ;)
     if '= malloc(' in lines[i]:
-        mallocs.append(i)
+        name = getVarNameAlloc(lines[i])
+        if name not in mallocs: mallocs[name] = []
+        mallocs[name].append(i)
     if '=' in lines[i] and '==' not in lines[i]:
         assignments_on.append(i)
     if 'free' in lines[i]:
-        frees.append(i)
-
+        name = getVarNameFree(lines[i])
+        if name not in frees: frees[name] = []
+        frees[name].append(i)
 
 # All of the numbers are the line number - 1 because of starting at line 0
 mainstart = -1
@@ -319,12 +377,16 @@ for i in range(0, len(lines) -1):
       break
 add_vertex(vertices_no, (mainstart,mainend), "ENTRY")
 branchFinder(mainstart, mainend, 0)
+
 print("Graph:", graph)
 print("Graph Data:", graphData)
-# print("Graph Conds: " , graphConds)
-# print("Graph Parents: ", graphParents)
-print("Mallocs:", mallocs)
-print("Frees:", frees)
+traverse(0)
+# # print("Graph Conds: " , graphConds)
+# # print("Graph Parents: ", graphParents)
+# print("Mallocs:", mallocs)
+# print("Frees:", frees)
+for i in range(len(graph)):
+   print("available at " + str(i) + ": " + str(graphAvailable[i]))
 
 # 2 cases: struct <...> and <type> (basic)
-type = ['int','float','double','char'] # if not type, then its a struct
+type = ['int','float','double','char'] # if not type, then its a struct 
