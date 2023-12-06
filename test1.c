@@ -21,17 +21,22 @@ void main(int argc, char* argv[]){
             printf("less than 6");
         }
     }
+    else if(i > 10){
+        printf("do funny stuff");
+        printf("do funny stuff again");
+        printf("do funny stuff one more time");
+    }
     // path 2 - memory leak
     else{ 
         dummy->value = i;
     }
-    
-    for(j = 0; j < i; j++){
-        printf("im doing a loop!");
-        if(j == 2) {
-            // literally nothing
-        }
-    }
+
+    // for(j = 0; j < i; j++){
+    //     printf("im doing a loop!");
+    //     if(j == 2) {
+    //         // literally nothing
+    //     }
+    // }
 
     // if(i) free(dummy); else (printf("a")); fun test case
     return;

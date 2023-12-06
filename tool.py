@@ -46,8 +46,13 @@ def print_graph():
 
 # GRAPH STUFF DONE
 
+def getNextNode(endIndex):
+   for data in graphData:
+      if graphData[data][0] >= endIndex:
+         return data
+
 # finding the number of variable assignments
-f = open('test3.c')
+f = open('test1.c')
 lines = [str(l).strip() for l in f.readlines()]
 f.close()
 
@@ -65,14 +70,15 @@ def branchFinder(start: int, end: int, G: int): # start at a given program point
     global vertices_no
     global lines
     stack = []
+    pathsToAdd = {} # node number, line number ended
     i = start
     while i <= end:
         # comment or empty line, comments should always be on their own lines
         if(i == end):
-           print("something")
+           #print("something")
            #snapToParent(G)
            break
-        if len(lines[i]) == 0 or "//" in lines[i]:
+        if len(lines[i]) == 0 or "//" in lines[i] or (len(lines[i]) == 1 and "}" in lines[i]):
             i += 1
         else:
             # start of if or else conditional
@@ -94,16 +100,20 @@ def branchFinder(start: int, end: int, G: int): # start at a given program point
                 thisCond = getLineCond(lines[i])
                 cond = vertices_no # v_no of the conditional
                 add_vertex(vertices_no, (i,i), thisCond) # the conditional statement itself
-                body = vertices_no # v_no of body
-                add_vertex(vertices_no, (i, temp), "body") # adds new vertice i=start, temp=end
-                # below is here because the first node should not point to itself (0) unless it is a loop
-                # if it is -1, meaning it is the very first branch, G should be changed to 0 afterword
-                if(G != -1): 
-                   add_edge(G, cond)
-                else: 
-                   G = 0
-                add_edge(cond, body)
-                branchFinder(i + 1, temp, cond)
+                add_edge(G, vertices_no - 1)
+                G = vertices_no - 1
+                if ("else{" not in lines[i]):
+                    pathsToAdd[vertices_no - 1] = temp
+                # body = vertices_no # v_no of body
+                # add_vertex(vertices_no, (i, temp), "body") # adds new vertice i=start, temp=end
+                # # below is here because the first node should not point to itself (0) unless it is a loop
+                # # if it is -1, meaning it is the very first branch, G should be changed to 0 afterword
+                # if(G != -1): 
+                #    add_edge(G, cond)
+                # else: 
+                #    G = 0
+                # add_edge(cond, body)
+                # branchFinder(i + 1, temp, cond)
                 #snapToParent(cond)
                 # i = temp + 1
                 i += 1
@@ -133,6 +143,10 @@ def branchFinder(start: int, end: int, G: int): # start at a given program point
               branchFinder(i + 1, temp, vertices_no - 1)
               i = temp
             else:
+                add_vertex(vertices_no, (i, i), "body")
+                add_edge(G, vertices_no - 1)
+                G = vertices_no - 1
+                # branchFinder(i + 1, end, vertices_no - 1)
                 # we are in a body section!
                 # temp = i
                 # while "}" not in lines[temp] and\
@@ -151,6 +165,10 @@ def branchFinder(start: int, end: int, G: int): # start at a given program point
                 # branchFinder(temp, end, v)
                 # i = temp+1
                 i += 1
+    for path in pathsToAdd:
+       nextNode = getNextNode(pathsToAdd[path])
+       if (nextNode not in graph[path]):
+          add_edge(path, nextNode)
             
 
 def getLineCond(s: str):
@@ -219,9 +237,9 @@ for i in range(0, len(lines) -1):
       temp = i
       stack = []
       while True:
-        if "{" in lines[temp]:
+        if "{" in lines[temp] and "//" not in lines[temp]:
             stack.append("{")
-        if "}" in lines[temp]:
+        if "}" in lines[temp] and "//" not in lines[temp]:
             if stack[len(stack) - 1] == "{":
                 stack.pop()
                 if (len(stack) == 0):
@@ -237,12 +255,10 @@ add_vertex(vertices_no, (mainstart,mainend), "ENTRY")
 branchFinder(mainstart, mainend, 0)
 print("Graph:", graph)
 print("Graph Data:", graphData)
-print("Graph Conds: " , graphConds)
-print("Graph Parents: ", graphParents)
+# print("Graph Conds: " , graphConds)
+# print("Graph Parents: ", graphParents)
 print("Mallocs:", mallocs)
 print("Frees:", frees)
 
 # 2 cases: struct <...> and <type> (basic)
 type = ['int','float','double','char'] # if not type, then its a struct
-
-
