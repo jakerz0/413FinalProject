@@ -125,7 +125,34 @@ def branchFinder(start: int, end: int, G: int): # start at a given program point
 
 #             return (start, i) 
         
+def kill_definitions(start, end):
+    defined_vars = {}
+    killed_definitions = []
 
+    for i in range(start, end):
+        line = lines[i]
+        
+        if not line or line.startswith('/'):
+            continue
+
+        print(f"Line {i}: {line}")
+
+        if '=' in line and '==' not in line:
+            tokens = line.split('=')
+            var_name = tokens[0].split()[-1].strip()
+
+            print(f"Var here dawg: {var_name}")
+
+            if var_name in defined_vars:
+   
+                killed_definitions.append(defined_vars[var_name])
+            defined_vars[var_name] = i
+            
+    for vertex in graph:
+        start, end = graphData[vertex]
+        graphData[vertex] = (start, end, [k for k in killed_definitions if start <= k <= end])
+
+    return killed_definitions
 
 # getting mallocs, frees, and general assignments by program point, no names/vals
 i = 0
@@ -140,11 +167,15 @@ for i in range(len(lines)):
 
 
 # All of the numbers are the line number - 1 because of starting at line 0
+killed_definitions = kill_definitions(0, len(lines))
 branchFinder(0, len(lines) - 1, vertices_no)
+
+
 print("Graph:", graph)
 print("Graph Data:", graphData)
 print("Mallocs:", mallocs)
 print("Frees:", frees)
+print("Killed Definitions:", [(k, lines[k]) for k in killed_definitions])
 
 # 2 cases: struct <...> and <type> (basic)
 type = ['int','float','double','char'] # if not type, then its a struct
