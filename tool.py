@@ -1,3 +1,6 @@
+import os
+import sys
+
 # BEGIN GRAPH STUFF
 graph = {}
 vertices_no = 0
@@ -63,7 +66,10 @@ def getNextLoopNode(endIndexNode, endIndexLoop, loopNode):
     return loopNode
 
 # finding the number of variable assignments
-f = open('test2.c')
+if len(sys.argv) > 2:
+   print("You must supply only one filepath as an argument, exiting.")
+   exit(0)
+f = open(sys.argv[1])
 lines = [str(l).strip() for l in f.readlines()]
 f.close()
 
@@ -305,17 +311,19 @@ def getVarNameFree(line: str):
 def traverse(root: int):
    global graph
    Q = [root]
-#    visited = [root]
+   visited = []
    
    while Q:
       v = Q.pop()
-      print(v, end=" ")
+    #   print(v, end=" ")
 
       for neighbor in graph[v]:
-        #  if neighbor not in visited:
-            # visited.append(neighbor)
+        if neighbor in visited:
+            continue
             # variable stuff
-        
+        if "for(" or "while(" in lines[neighbor]:
+           visited.append(neighbor)
+
         graphAvailable[neighbor] = set(graphAvailable[v]).union(set(graphAvailable[neighbor]))
         if graphData[neighbor][0] == graphData[neighbor][1]: # if it is an atomic operation
             theLine = graphData[neighbor][0]
@@ -378,15 +386,31 @@ for i in range(0, len(lines) -1):
 add_vertex(vertices_no, (mainstart,mainend), "ENTRY")
 branchFinder(mainstart, mainend, 0)
 
-print("Graph:", graph)
-print("Graph Data:", graphData)
+# print("Graph:", graph)
+# print("Graph Data:", graphData)
 traverse(0)
 # # print("Graph Conds: " , graphConds)
 # # print("Graph Parents: ", graphParents)
 # print("Mallocs:", mallocs)
 # print("Frees:", frees)
+# for i in range(len(graph)):
+#    print("available at " + str(i) + ": " + str(graphAvailable[i]))
+
+if not os.path.exists("output.txt"):
+  print("You took my output file! I'll just make another one...")
+
+f = open("output.txt", 'a')
+f.truncate(0)
+f.write("Vertex to children map: " + str(graph) + "\n")
+f.write("Node block ranges: " + str(graphData) + "\n")
+# f.write(graph)
+f.write("\n")
 for i in range(len(graph)):
-   print("available at " + str(i) + ": " + str(graphAvailable[i]))
+   f.write("available at " + str(i) + ": " + str(graphAvailable[i]) + "\n")
+
+if graphAvailable[len(graph)-1]:
+   print("Memory leaks detected in " + str(sys.argv[1]) + " for variable pointers " + str(graphAvailable[len(graph)-1]))
+
+print("View report in 'output.txt' ")
 
 # 2 cases: struct <...> and <type> (basic)
-type = ['int','float','double','char'] # if not type, then its a struct 
