@@ -46,13 +46,21 @@ def print_graph():
 
 # GRAPH STUFF DONE
 
+# gets next node for if/else statements when connecting edges
 def getNextNode(endIndex):
    for data in graphData:
-      if graphData[data][0] >= endIndex:
+      if graphData[data][0] > endIndex:
          return data
 
+# gets next node for loops when connecting edges
+def getNextLoopNode(endIndexNode, endIndexLoop, loopNode):
+    for data in graphData:
+        if graphData[data][0] > endIndexNode and graphData[data][0] < endIndexLoop:
+            return data
+    return loopNode
+
 # finding the number of variable assignments
-f = open('test1.c')
+f = open('test2.c')
 lines = [str(l).strip() for l in f.readlines()]
 f.close()
 
@@ -70,7 +78,10 @@ def branchFinder(start: int, end: int, G: int): # start at a given program point
     global vertices_no
     global lines
     stack = []
+    inLoop = False
+    loopLocations = {} # start of loop, (end of loop, loopNode)
     pathsToAdd = {} # node number, line number ended
+    pathsInLoops = {} # (node number, line number ended), (loopNodeNumber, line number ended)
     i = start
     while i <= end:
         # comment or empty line, comments should always be on their own lines
@@ -102,8 +113,22 @@ def branchFinder(start: int, end: int, G: int): # start at a given program point
                 add_vertex(vertices_no, (i,i), thisCond) # the conditional statement itself
                 add_edge(G, vertices_no - 1)
                 G = vertices_no - 1
-                if ("else{" not in lines[i]):
+                # will not add if in loops, instead added later
+                firstIn = True
+                for loc in loopLocations:
+                    if (loc < i and loopLocations[loc][0] > temp):
+                        inLoop = True
+                        if (not firstIn and loopLocations[loc][0] < loopNode[0]):
+                            loopNode = loopLocations[loc]
+                        else:
+                            loopNode = loopLocations[loc]
+                        firstIn = False
+                firstIn = False
+                if ("else{" not in lines[i]) and not inLoop:
                     pathsToAdd[vertices_no - 1] = temp
+                elif inLoop:
+                    pathsInLoops[(vertices_no - 1, temp)] = (loopNode[1], loopNode[0])
+                inLoop = False
                 # body = vertices_no # v_no of body
                 # add_vertex(vertices_no, (i, temp), "body") # adds new vertice i=start, temp=end
                 # # below is here because the first node should not point to itself (0) unless it is a loop
@@ -118,33 +143,65 @@ def branchFinder(start: int, end: int, G: int): # start at a given program point
                 # i = temp + 1
                 i += 1
             elif "for(" in lines[i]  or "while(" in lines[i]:
-              temp = i
-              while True:
-                  if "{" in lines[temp]:
-                      stack.append("{")
-                  if "}" in lines[temp]:
-                      if stack[len(stack) - 1] == "{":
-                          stack.pop()
-                          if (len(stack) == 0):
-                              #break when found end, end is held in temp
-                              break
-                      else:
-                          # This should realistically never happen
-                          stack.append("}")
-                  temp += 1
-              thisCond = getLineCond(lines[i])
-              cond = vertices_no # v_no of the conditional
-              add_vertex(cond, (i, i), thisCond) # adds new vertice i=start, temp=end
-              body = vertices_no # v_no of body
-              add_vertex(body, (i, temp), "body") # adds new vertice i=start, temp=end
-              add_edge(G, cond) # between superbody and cond
-              add_edge(cond, body) # between the cond and the body
-              add_edge(body, cond) # for loops, add an edge from its body to its cond
-              branchFinder(i + 1, temp, vertices_no - 1)
-              i = temp
+                temp = i
+                while True:
+                    if "{" in lines[temp]:
+                        stack.append("{")
+                    if "}" in lines[temp]:
+                        if stack[len(stack) - 1] == "{":
+                            stack.pop()
+                            if (len(stack) == 0):
+                                #break when found end, end is held in temp
+                                break
+                        else:
+                            # This should realistically never happen
+                            stack.append("}")
+                    temp += 1
+                thisCond = getLineCond(lines[i])
+                cond = vertices_no # v_no of the conditional
+                add_vertex(vertices_no, (i, i), thisCond) # adds new vertice of conditional
+                pathsToAdd[cond] = temp
+                # will not add if in loops, instead added later
+                firstIn = True
+                for loc in loopLocations:
+                    if (loc < i and loopLocations[loc][0] > temp):
+                        inLoop = True
+                        if (not firstIn and loopLocations[loc][0] < loopNode[0]):
+                            loopNode = loopLocations[loc]
+                        else:
+                            loopNode = loopLocations[loc]
+                        firstIn = False
+                firstIn = False
+                if inLoop:
+                    pathsInLoops[(vertices_no - 1, temp)] = (loopNode[1], loopNode[0])
+                inLoop = False
+                loopLocations[i] = (temp, vertices_no - 1)
+                body = vertices_no # v_no of body
+                # add_vertex(body, (i, temp), "body") # adds new vertice i=start, temp=end
+                add_edge(G, cond) # between conditional and previous
+                # add_edge(cond, body) # between the cond and the body
+                add_edge(cond, cond) # for loops, add an edge from its body to its cond
+                # branchFinder(i + 1, temp, vertices_no - 1)
+                # i = temp
+                G = vertices_no - 1
+                i += 1
             else:
                 add_vertex(vertices_no, (i, i), "body")
                 add_edge(G, vertices_no - 1)
+                # will not add if in loops, instead added later
+                firstIn = True
+                for loc in loopLocations:
+                    if (loc < i and loopLocations[loc][0] > i):
+                        inLoop = True
+                        if (not firstIn and loopLocations[loc][0] < loopNode[0]):
+                            loopNode = loopLocations[loc]
+                        else:
+                            loopNode = loopLocations[loc]
+                        firstIn = False
+                firstIn = False
+                if inLoop:
+                    pathsInLoops[(vertices_no - 1, i)] = (loopNode[1], loopNode[0])
+                inLoop = False
                 G = vertices_no - 1
                 # branchFinder(i + 1, end, vertices_no - 1)
                 # we are in a body section!
@@ -169,6 +226,15 @@ def branchFinder(start: int, end: int, G: int): # start at a given program point
        nextNode = getNextNode(pathsToAdd[path])
        if (nextNode not in graph[path]):
           add_edge(path, nextNode)
+    for loopPath in pathsInLoops:
+        nextNode = getNextLoopNode(loopPath[1], pathsInLoops[loopPath][1],
+                                   pathsInLoops[loopPath][0])
+        if (nextNode not in graph[loopPath[0]]):
+            add_edge(loopPath[0], nextNode)
+        # remove edges that leave loops
+        for edge in graph[loopPath[0]]:
+            if (graphData[edge][0] > pathsInLoops[loopPath][1]): # start of edge is after end of loop
+                graph[loopPath[0]].remove(edge)
             
 
 def getLineCond(s: str):

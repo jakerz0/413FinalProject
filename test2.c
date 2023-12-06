@@ -12,8 +12,16 @@ void main(int argc, char* argv[]){
     struct dummy* dummy = malloc(sizeof(struct dummy));
 
     for(j = 0; j < i; j++){
-        if(j == 9){
-            free(dummy);
+        while(i < 100){
+            if(j == 9){
+                free(dummy);
+            }
+            if(i < j){
+                free(dummy);
+            }
+        }
+        if(j){
+            printf("deez");
         }
     }
 
