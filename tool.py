@@ -230,25 +230,14 @@ def getLineCond(s: str):
    else:
       print("NO COND FOUND in " + s)
 
-# TODO this is still not perfect, I think the body system needs to be refactored to include multiple 
-# "bodies" in one block, i.e. between loops and ites in a given block
-def snapToParent(g: int):
-    if(g <= 0): return
-    iter = g
-    while iter > 1 and graphParents[iter] != None:
-
-        if graphConds[graphParents[iter][0]] == "while" or graphConds[graphParents[iter][0]] == "for":
-            break
-        iter = graphParents[iter][0]
-    iter = graphParents[iter][0]
-    add_edge(g, iter)
-
+# isolates the name of the variable being allocated
 def getVarNameAlloc(line: str):
    elems = line.split()
    for i in range(len(elems)):
       if elems[i] == "=":
          return elems[i-1]
 
+# isolates the name of the variable in a free()
 def getVarNameFree(line: str):
     start: int
     end: int
@@ -268,19 +257,22 @@ def traverse(root: int):
    Q = [root]
    visited = []
    
+   # BFS pattern
    while Q:
+      # get node to process
       v = Q.pop()
-    #   print(v, end=" ")
 
       for neighbor in graph[v]:
         if neighbor in visited:
             continue
             # variable stuff
         if "for(" or "while(" in lines[neighbor]:
+           # only add loops to visited since their children will return to their
+           # parent-loop's conditional node. It does not need to be reevaluated.
            visited.append(neighbor)
 
         graphAvailable[neighbor] = set(graphAvailable[v]).union(set(graphAvailable[neighbor]))
-        if graphData[neighbor][0] == graphData[neighbor][1]: # if it is an atomic operation
+        if graphData[neighbor][0] == graphData[neighbor][1]: # if it is an atomic operation/node
             theLine = graphData[neighbor][0]
             if "alloc(" in lines[theLine]: # GEN definitions
                 theName = getVarNameAlloc(lines[theLine])
@@ -288,7 +280,9 @@ def traverse(root: int):
             if "free(" in lines[theLine]: # KILL definitions
                 theName = getVarNameFree(lines[theLine])
                 graphAvailable[neighbor] = set(graphAvailable[neighbor]).difference({theName})
-        
+
+        # bookkeeping... python does not like empty sets, it treats them as NONE and
+        # not an empty data structure. I suppose that is mathematically correct though...        
         if graphAvailable[neighbor] == None:
            graphAvailable[neighbor] = set()
 
@@ -341,5 +335,3 @@ if graphAvailable[len(graph)-1]:
    print("Memory leaks detected in " + str(sys.argv[1]) + " for variable pointers " + str(graphAvailable[len(graph)-1]))
 
 print("View report in 'output.txt' ")
-
-# 2 cases: struct <...> and <type> (basic)
