@@ -287,8 +287,20 @@ def traverse(root: int):
            graphAvailable[neighbor] = set()
 
         Q.append(neighbor)
-        
 
+# Returns if there are no mem leaks otherwise shows the node/var where potential mem leaks are - uses the graphAvailable dictionary
+def check_memory_leaks(f):
+    leaks_detected = False
+    for node in graphAvailable:
+        if graphAvailable[node]:
+            leak_info = f"Potential memory leak detected at node {node}: {graphAvailable[node]}\n"
+            # print(leak_info) 
+            f.write(leak_info)
+            leaks_detected = True
+    if not leaks_detected:
+        f.write("No memory leaks detected.\n")
+
+        
 # All of the numbers are the line number - 1 because of starting at line 0
 mainstart = -1
 mainend = -1
@@ -318,6 +330,7 @@ branchFinder(mainstart, mainend, 0)
 
 
 traverse(0)
+# check_memory_leaks()
 
 # OUTPUT TO FILE
 if not os.path.exists("output.txt"):
@@ -330,7 +343,8 @@ f.write("Node block ranges: " + str(graphData) + "\n")
 f.write("\n")
 for i in range(len(graph)):
    f.write("available at " + str(i) + ": " + str(graphAvailable[i]) + "\n")
-
+f.write("\n")
+check_memory_leaks(f)
 if graphAvailable[len(graph)-1]:
    print("Memory leaks detected in " + str(sys.argv[1]) + " for variable pointers " + str(graphAvailable[len(graph)-1]))
 
