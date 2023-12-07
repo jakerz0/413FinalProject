@@ -1,0 +1,17 @@
+Vertex to children map: {0: [1], 1: [2], 2: [3], 3: [4], 4: [5], 5: [5, 6, 13], 6: [6, 7, 11], 7: [8, 9], 8: [9], 9: [10, 6], 10: [6], 11: [12, 5], 12: [5], 13: []}
+Node block ranges: {0: (7, 29), 1: (7, 7), 2: (9, 9), 3: (10, 10), 4: (11, 11), 5: (13, 13), 6: (14, 14), 7: (15, 15), 8: (16, 16), 9: (18, 18), 10: (19, 19), 11: (22, 22), 12: (23, 23), 13: (28, 28)}
+
+available at 0: set()
+available at 1: set()
+available at 2: set()
+available at 3: set()
+available at 4: {'dummy'}
+available at 5: {'dummy'}
+available at 6: {'dummy'}
+available at 7: {'dummy'}
+available at 8: set()
+available at 9: {'dummy'}
+available at 10: set()
+available at 11: {'dummy'}
+available at 12: {'dummy'}
+available at 13: {'dummy'}

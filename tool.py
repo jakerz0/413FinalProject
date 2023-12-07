@@ -43,6 +43,13 @@ def add_edge(v1, v2):
     if v2 not in graph[v1]: graph[v1].append(v2)
     if v1 not in graph[v2]: graphParents[v2].append(v1)
 
+# Print the graph
+def print_graph():
+  global graph
+  for vertex in graph:
+    for edges in graph[vertex]:
+      print(vertex, " -> ", edges[0], " edge weight: ", edges[1])
+
 # GRAPH STUFF DONE
 
 # gets next node for if/else statements when connecting edges
@@ -84,8 +91,6 @@ def branchFinder(start: int, end: int, G: int): # start at a given program point
     while i <= end:
         # comment or empty line, comments should always be on their own lines
         if(i == end):
-           #print("something")
-           #snapToParent(G)
            break
         if len(lines[i]) == 0 or "//" in lines[i] or (len(lines[i]) == 1 and "}" in lines[i]):
             i += 1
@@ -122,12 +127,15 @@ def branchFinder(start: int, end: int, G: int): # start at a given program point
                             loopNode = loopLocations[loc]
                         firstIn = False
                 firstIn = False
+                # add to if/else conditional dictionary
                 if ("else{" not in lines[i]) and not inLoop:
                     pathsToAdd[vertices_no - 1] = temp
+                # add to for/while conditional dictionary
                 elif inLoop:
                     pathsInLoops[(vertices_no - 1, temp)] = (loopNode[1], loopNode[0])
                 inLoop = False
                 i += 1
+            # case for for/while loops
             elif "for(" in lines[i]  or "while(" in lines[i]: # loop identification
                 temp = i
                 while True:
@@ -158,6 +166,7 @@ def branchFinder(start: int, end: int, G: int): # start at a given program point
                             loopNode = loopLocations[loc]
                         firstIn = False
                 firstIn = False
+                # addition to for/while dictionary
                 if inLoop:
                     pathsInLoops[(vertices_no - 1, temp)] = (loopNode[1], loopNode[0])
                 inLoop = False
@@ -171,6 +180,7 @@ def branchFinder(start: int, end: int, G: int): # start at a given program point
                 G = vertices_no - 1
                 i += 1
             else:
+                # normal case for basic lines of code
                 add_vertex(vertices_no, (i, i), "body")
                 add_edge(G, vertices_no - 1)
                 # will not add if in loops, instead added later
@@ -189,11 +199,12 @@ def branchFinder(start: int, end: int, G: int): # start at a given program point
                 inLoop = False
                 G = vertices_no - 1
                 i += 1
-
+    # adds missing edges to if/else statements
     for path in pathsToAdd:
        nextNode = getNextNode(pathsToAdd[path])
        if (nextNode not in graph[path]):
           add_edge(path, nextNode)
+    # adds missing edges to for/while statements
     for loopPath in pathsInLoops:
         nextNode = getNextLoopNode(loopPath[1], pathsInLoops[loopPath][1],
                                    pathsInLoops[loopPath][0])
@@ -201,7 +212,7 @@ def branchFinder(start: int, end: int, G: int): # start at a given program point
             add_edge(loopPath[0], nextNode)
         # remove edges that leave loops
         for edge in graph[loopPath[0]]:
-            if (graphData[edge][0] > pathsInLoops[loopPath][1]): # start of edge is after end of loop
+            if (graphData[edge][0] > pathsInLoops[loopPath][1]): # if start of edge is after end of loop
                 graph[loopPath[0]].remove(edge)
             
 
@@ -231,21 +242,6 @@ def snapToParent(g: int):
         iter = graphParents[iter][0]
     iter = graphParents[iter][0]
     add_edge(g, iter)
-# tmp = []
-# def findEndOfBlock(start: int):
-#     stack = []
-#     for i in range(start, len(lines)):
-#         if "//" in lines[i]: continue
-#         if "{" in lines[i]:
-#             stack.append(i)
-#         if "}" in lines[i]:
-#             y = stack.pop()
-#             if (y,i) not in tmp:
-#                 tmp.append((y,i))
-#         if len(stack) == 0: 
-#             # print(tmp)
-
-#             return (start, i) 
 
 def getVarNameAlloc(line: str):
    elems = line.split()
@@ -326,15 +322,8 @@ for i in range(0, len(lines) -1):
 add_vertex(vertices_no, (mainstart,mainend), "ENTRY")
 branchFinder(mainstart, mainend, 0)
 
-# print("Graph:", graph)
-# print("Graph Data:", graphData)
+
 traverse(0)
-# # print("Graph Conds: " , graphConds)
-# # print("Graph Parents: ", graphParents)
-# print("Mallocs:", mallocs)
-# print("Frees:", frees)
-# for i in range(len(graph)):
-#    print("available at " + str(i) + ": " + str(graphAvailable[i]))
 
 # OUTPUT TO FILE
 if not os.path.exists("output.txt"):
@@ -344,7 +333,6 @@ f = open("output.txt", 'a')
 f.truncate(0)
 f.write("Vertex to children map: " + str(graph) + "\n")
 f.write("Node block ranges: " + str(graphData) + "\n")
-# f.write(graph)
 f.write("\n")
 for i in range(len(graph)):
    f.write("available at " + str(i) + ": " + str(graphAvailable[i]) + "\n")
