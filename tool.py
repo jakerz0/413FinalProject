@@ -43,13 +43,6 @@ def add_edge(v1, v2):
     if v2 not in graph[v1]: graph[v1].append(v2)
     if v1 not in graph[v2]: graphParents[v2].append(v1)
 
-# Print the graph
-def print_graph():
-  global graph
-  for vertex in graph:
-    for edges in graph[vertex]:
-      print(vertex, " -> ", edges[0], " edge weight: ", edges[1])
-
 # GRAPH STUFF DONE
 
 # gets next node for if/else statements when connecting edges
