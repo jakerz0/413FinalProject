@@ -128,7 +128,7 @@ def branchFinder(start: int, end: int, G: int): # start at a given program point
                     pathsInLoops[(vertices_no - 1, temp)] = (loopNode[1], loopNode[0])
                 inLoop = False
                 i += 1
-            elif "for(" in lines[i]  or "while(" in lines[i]:
+            elif "for(" in lines[i]  or "while(" in lines[i]: # loop identification
                 temp = i
                 while True:
                     if "{" in lines[temp]:
@@ -286,10 +286,10 @@ def traverse(root: int):
         graphAvailable[neighbor] = set(graphAvailable[v]).union(set(graphAvailable[neighbor]))
         if graphData[neighbor][0] == graphData[neighbor][1]: # if it is an atomic operation
             theLine = graphData[neighbor][0]
-            if "alloc(" in lines[theLine]:
+            if "alloc(" in lines[theLine]: # GEN definitions
                 theName = getVarNameAlloc(lines[theLine])
                 graphAvailable[neighbor] = set(graphAvailable[neighbor]).union({theName})
-            if "free(" in lines[theLine]:
+            if "free(" in lines[theLine]: # KILL definitions
                 theName = getVarNameFree(lines[theLine])
                 graphAvailable[neighbor] = set(graphAvailable[neighbor]).difference({theName})
         
@@ -336,6 +336,7 @@ traverse(0)
 # for i in range(len(graph)):
 #    print("available at " + str(i) + ": " + str(graphAvailable[i]))
 
+# OUTPUT TO FILE
 if not os.path.exists("output.txt"):
   print("You took my output file! I'll just make another one...")
 
