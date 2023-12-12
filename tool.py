@@ -252,10 +252,12 @@ def getVarNameFree(line: str):
         break
     return line[start:end]
 
+freeStatements = {}
 def traverse(root: int):
    global graph
    Q = [root]
    visited = []
+   global freeStatements
    
    # BFS pattern
    while Q:
@@ -280,6 +282,9 @@ def traverse(root: int):
             if "free(" in lines[theLine]: # KILL definitions
                 theName = getVarNameFree(lines[theLine])
                 graphAvailable[neighbor] = set(graphAvailable[neighbor]).difference({theName})
+                if theName not in freeStatements:
+                   freeStatements[theName] = []
+                freeStatements[theName].append(neighbor)
 
         # bookkeeping... python does not like empty sets, it treats them as NONE and
         # not an empty data structure. I suppose that is mathematically correct though...        
@@ -287,8 +292,36 @@ def traverse(root: int):
            graphAvailable[neighbor] = set()
 
         Q.append(neighbor)
-        
 
+# Returns if there are no mem leaks otherwise shows the node/var where potential mem leaks are - uses the graphAvailable dictionary
+def check_memory_leaks(f):
+    leaks_detected = False
+    # print(graphAvailable)
+    # if len(graphAvailable) == 0:
+       
+    leakers = graphAvailable[len(graphAvailable)-1]
+    if len(leakers) == 0:
+       f.write("No memory leaks detected.\n")
+       return
+    f.write("Potential memory leaks detected for varialbes " + str(leakers) + "\n")
+    
+    for var in leakers:
+    #    print(freeStatements)
+       freeLines = []
+       for node in freeStatements[var]:
+          freeLines.append(graphData[node][0])
+       leak_info = f" {var} is freed at nodes {freeStatements[var]} (lines {freeLines}), but has living definitions on termination."
+       f.write(leak_info)
+    # for node in graphAvailable:
+    #     if graphAvailable[node]:
+    #         leak_info = f"  {node}: {graphAvailable[node]}\n"
+    #         # print(leak_info) 
+    #         f.write(leak_info)
+    #         leaks_detected = True
+    # if not leaks_detected:
+    #     f.write("No memory leaks detected.\n")
+
+        
 # All of the numbers are the line number - 1 because of starting at line 0
 mainstart = -1
 mainend = -1
@@ -318,6 +351,7 @@ branchFinder(mainstart, mainend, 0)
 
 
 traverse(0)
+# check_memory_leaks()
 
 # OUTPUT TO FILE
 if not os.path.exists("output.txt"):
@@ -330,7 +364,8 @@ f.write("Node block ranges: " + str(graphData) + "\n")
 f.write("\n")
 for i in range(len(graph)):
    f.write("available at " + str(i) + ": " + str(graphAvailable[i]) + "\n")
-
+f.write("\n")
+check_memory_leaks(f)
 if graphAvailable[len(graph)-1]:
    print("Memory leaks detected in " + str(sys.argv[1]) + " for variable pointers " + str(graphAvailable[len(graph)-1]))
 
