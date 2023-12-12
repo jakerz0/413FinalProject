@@ -303,14 +303,14 @@ def check_memory_leaks(f):
     if len(leakers) == 0:
        f.write("No memory leaks detected.\n")
        return
-    f.write("Potential memory leaks detected for varialbes " + str(leakers) + "\n")
+    f.write("! ! ! Potential memory leaks detected for varialbes " + str(leakers) + " ! ! !\n")
     
     for var in leakers:
     #    print(freeStatements)
        freeLines = []
        for node in freeStatements[var]:
-          freeLines.append(graphData[node][0])
-       leak_info = f" {var} is freed at nodes {freeStatements[var]} (lines {freeLines}), but has living definitions on termination."
+          freeLines.append(graphData[node][0] + 1)
+       leak_info = f"{var} is freed at nodes {freeStatements[var]} (lines {freeLines}), but has living definitions on termination."
        f.write(leak_info)
     # for node in graphAvailable:
     #     if graphAvailable[node]:
